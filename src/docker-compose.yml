@@ -31,7 +31,7 @@ services:
     container_name: mariadb
     restart: always
     volumes:
-      - ./db:/config
+      - /efs/db:/config
     environment:
       - PUID=500
       - PGID=500
@@ -48,7 +48,7 @@ services:
     container_name: nextcloud
     restart: always
     volumes:
-      - ./nextcloud:/var/www/html
+      - /efs/nextcloud:/var/www/html
     environment: 
       - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.ibhi.cf
       - PUID=500

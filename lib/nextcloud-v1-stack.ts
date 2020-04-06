@@ -20,7 +20,7 @@ export class NextcloudV1Stack extends cdk.Stack {
     ).secretArn;
 
     const hostedZoneId = 'ZVX61BHCX8GQS';
-    const domain = 'ibhi.cf';
+    const domain = 'ibhi.info';
 
     const vpc = new ec2.Vpc(this, 'Nextcloud-VPC', {
       cidr: '10.0.0.0/16',
@@ -113,17 +113,17 @@ export class NextcloudV1Stack extends cdk.Stack {
 
     const elasticIp = new ec2.CfnEIP(this, 'NextcloudElasticIp');
 
-    // const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
-    //   this,
-    //   'NextcloudHostedZone',
-    //   {
-    //     hostedZoneId: hostedZoneId,
-    //     zoneName: domain
-    //   }
-    // );
-    const hostedZone = new route53.HostedZone(this, 'NextcloudHostedZone', {
-      zoneName: domain
-    });
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
+      this,
+      'NextcloudHostedZone',
+      {
+        hostedZoneId: hostedZoneId,
+        zoneName: domain
+      }
+    );
+    // const hostedZone = new route53.HostedZone(this, 'NextcloudHostedZone', {
+    //   zoneName: domain
+    // });
 
     new route53.ARecord(this, 'NextcloudARecord', {
       zone: hostedZone,
@@ -150,6 +150,7 @@ export class NextcloudV1Stack extends cdk.Stack {
     appUserData.addCommands(userData);
 
     appUserData.addCommands(
+      `sudo su - ec2-user`,
       `export EC2_INSTANCE_ID=\`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id || die "wget instance-id has failed: $?"\``,
       `export ALLOCATION_ID=${elasticIp.attrAllocationId}`,
       `echo $ALLOCATION_ID`,
@@ -159,10 +160,12 @@ export class NextcloudV1Stack extends cdk.Stack {
       `git clone https://github.com/ibhi/nextcloud-v1-aws.git`,
       `cd /home/ec2-user/app/nextcloud-v1-aws`,
       `npm install`,
+      `sudo chown -R ec2-user:ec2-user /home/ec2-user/app/nextcloud-v1-aws`,
       `node /home/ec2-user/app/nextcloud-v1-aws/src/elastic-ip.js`,
       `sudo mkdir -p /efs`,
       `sudo chown -R ec2-user:ec2-user /efs`,
       `sudo mount -t efs ${efsFileSystem.fileSystemId}:/ /efs`,
+      `cd /home/ec2-user/app/nextcloud-v1-aws/src`,
       `docker-compose up -d`,
     );
 
