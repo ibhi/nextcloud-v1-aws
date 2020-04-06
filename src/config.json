@@ -1,0 +1,88 @@
+{
+	"agent": {
+		"metrics_collection_interval": 60,
+		"run_as_user": "root"
+	},
+	"logs": {
+		"logs_collected": {
+			"files": {
+				"collect_list": [
+					{
+						"file_path": "/var/log/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.log",
+						"log_group_name": "NextcloudV1Stack-NextcloudCloudwatchLogGroup6E0260C8-ZZPEANHIL91U",
+						"log_stream_name": "/var/log/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent"
+                    },
+                    {
+						"file_path": "/var/log/docker",
+						"log_group_name": "NextcloudV1Stack-NextcloudCloudwatchLogGroup6E0260C8-ZZPEANHIL91U",
+						"log_stream_name": "/var/log/docker"
+                    },
+                    {
+						"file_path": "/var/log/cloud-init-output.log",
+						"log_group_name": "NextcloudV1Stack-NextcloudCloudwatchLogGroup6E0260C8-ZZPEANHIL91U",
+						"log_stream_name": "/var/log/cloud-init-output"
+					}
+				]
+			}
+		}
+	},
+	"metrics": {
+		"append_dimensions": {
+			"AutoScalingGroupName": "${aws:AutoScalingGroupName}",
+			"ImageId": "${aws:ImageId}",
+			"InstanceId": "${aws:InstanceId}",
+			"InstanceType": "${aws:InstanceType}"
+		},
+		"metrics_collected": {
+			"collectd": {
+				"metrics_aggregation_interval": 60
+			},
+			"cpu": {
+				"measurement": [
+					"cpu_usage_idle",
+					"cpu_usage_iowait",
+					"cpu_usage_user",
+					"cpu_usage_system"
+				],
+				"metrics_collection_interval": 60,
+				"totalcpu": false
+			},
+			"disk": {
+				"measurement": [
+					"used_percent",
+					"inodes_free"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				]
+			},
+			"diskio": {
+				"measurement": [
+					"io_time"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				]
+			},
+			"mem": {
+				"measurement": [
+					"mem_used_percent"
+				],
+				"metrics_collection_interval": 60
+			},
+			"statsd": {
+				"metrics_aggregation_interval": 60,
+				"metrics_collection_interval": 10,
+				"service_address": ":8125"
+			},
+			"swap": {
+				"measurement": [
+					"swap_used_percent"
+				],
+				"metrics_collection_interval": 60
+			}
+		}
+	}
+}

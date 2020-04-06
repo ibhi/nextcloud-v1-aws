@@ -1,0 +1,112 @@
+version: "3.7"
+
+services:
+  traefik:
+    # The official v2 Traefik docker image
+    image: traefik:v2.2
+    container_name: traefik
+    restart: always
+    # Enables the web UI and tells Traefik to listen to docker
+    command:
+      - --log.level=DEBUG
+      - --api.insecure=true 
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      # - --entrypoints.websecure.address=:443
+    ports:
+      # The HTTP port
+      - "80:80"
+      # - "443:443"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - frontend
+
+  db:
+    image: linuxserver/mariadb
+    container_name: mariadb
+    restart: always
+    volumes:
+      - ./db:/config
+    environment:
+      - PUID=500
+      - PGID=500
+      - MYSQL_ROOT_PASSWORD=password
+      - TZ=Europe/Amsterdam
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=password
+    networks:
+      - backend
+
+  nextcloud:
+    image: nextcloud
+    container_name: nextcloud
+    restart: always
+    volumes:
+      - ./nextcloud:/var/www/html
+    environment: 
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.ibhi.cf
+      - PUID=500
+      - PGID=500
+      - TZ=Europe/Amsterdam
+      # - MYSQL_DATABASE=nextcloud
+      # - MYSQL_USER=nextcloud
+      # - MYSQL_PASSWORD=password
+      # - MYSQL_HOST=mariadb:3306
+      # - NEXTCLOUD_ADMIN_USER=admin
+      # - NEXTCLOUD_ADMIN_PASSWORD=admin
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nextcloud.rule=Host(`nextcloud.ibhi.cf`)
+      - traefik.http.routers.nextcloud.service=nextcloud
+      - traefik.http.services.nextcloud.loadbalancer.server.port=80
+      - traefik.docker.network=data_frontend
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      - db
+
+  # nextcloud:
+  #   image: linuxserver/nextcloud
+  #   container_name: nextcloud
+  #   restart: always
+  #   volumes:
+  #     - ./nextcloud/config:/config
+  #     - ./nextcloud/data:/data
+  #   environment: 
+  #     - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.ibhi.cf
+  #     - PUID=500
+  #     - PGID=500
+  #     - TZ=Europe/Amsterdam
+  #   labels:
+  #     # - traefik.enable=true
+  #     # - traefik.http.routers.nextcloud.rule=Host(`nextcloud.ibhi.cf`)
+  #     # - traefik.http.routers.nextcloud.service=nextcloud
+  #     # - traefik.http.services.nextcloud.loadbalancer.server.port=443
+  #     # - traefik.docker.network=data_frontend
+  #     - "traefik.enable=true"
+  #     - "traefik.http.middlewares.nextcloud-https.redirectscheme.scheme=https"
+  #     - "traefik.http.routers.nextcloud-http.entrypoints=web"
+  #     - "traefik.http.routers.nextcloud-http.rule=Host(`nextcloud.ibhi.info`)"
+  #     - "traefik.http.routers.nextcloud-http.middlewares=nextcloud-https@docker"
+  #     - "traefik.http.routers.nextcloud.entrypoints=websecure"
+  #     - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.ibhi.info`)"
+  #     - traefik.http.services.nextcloud.loadbalancer.server.port=443
+  #     - "traefik.http.routers.nextcloud.tls=true"
+  #     - traefik.docker.network=data_frontend
+  #     # - "traefik.http.routers.nextcloud.tls.certresolver=default"
+  #   networks:
+  #     - frontend
+  #     - backend
+  #   depends_on:
+  #     - db
+
+networks:
+  frontend:
+  backend:
