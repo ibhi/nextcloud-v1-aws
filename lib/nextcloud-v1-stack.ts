@@ -23,6 +23,11 @@ export class NextcloudV1Stack extends cdk.Stack {
     const domain = 'ibhi.info';
 
     const vpc = new ec2.Vpc(this, 'Nextcloud-VPC', {
+      gatewayEndpoints: {
+        S3: {
+          service: ec2.GatewayVpcEndpointAwsService.S3
+        }
+      },
       cidr: '10.0.0.0/16',
       maxAzs: 2,
       subnetConfiguration: [
@@ -140,6 +145,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       vpc,
       encrypted: true,
       performanceMode: efs.EfsPerformanceMode.GENERAL_PURPOSE,
+      lifecyclePolicy: efs.EfsLifecyclePolicyProperty.AFTER_30_DAYS,
       securityGroup: mountTargetSecurityGroup,
     });
 
@@ -166,6 +172,8 @@ export class NextcloudV1Stack extends cdk.Stack {
       `sudo chown -R ec2-user:ec2-user /efs`,
       `sudo mount -t efs ${efsFileSystem.fileSystemId}:/ /efs`,
       `cd /home/ec2-user/app/nextcloud-v1-aws/src`,
+      `docker network create frontend`,
+      `export DOMAIN=${domain}`,
       `docker-compose up -d`,
     );
 

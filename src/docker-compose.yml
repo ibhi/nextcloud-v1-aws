@@ -44,33 +44,52 @@ services:
       - backend
 
   nextcloud:
-    image: nextcloud
+    image: nextcloud:fpm
     container_name: nextcloud
     restart: always
     volumes:
       - /efs/nextcloud:/var/www/html
-    environment: 
-      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.ibhi.cf
+    environment:
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.${DOMAIN}
       - PUID=500
       - PGID=500
       - TZ=Europe/Amsterdam
-      # - MYSQL_DATABASE=nextcloud
-      # - MYSQL_USER=nextcloud
-      # - MYSQL_PASSWORD=password
-      # - MYSQL_HOST=mariadb:3306
-      # - NEXTCLOUD_ADMIN_USER=admin
-      # - NEXTCLOUD_ADMIN_PASSWORD=admin
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=password
+      - MYSQL_HOST=mariadb:3306
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.nextcloud.rule=Host(`nextcloud.${DOMAIN}`)
+    #   - traefik.http.routers.nextcloud.service=nextcloud
+    #   - traefik.http.services.nextcloud.loadbalancer.server.port=80
+    #   - traefik.docker.network=frontend
+    networks:
+      # - frontend
+      - backend
+    depends_on:
+      - db
+
+  web:
+    image: nginx
+    container_name: web
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /efs/nextcloud:/var/www/html
+    restart: always
     labels:
       - traefik.enable=true
-      - traefik.http.routers.nextcloud.rule=Host(`nextcloud.ibhi.cf`)
+      - traefik.http.routers.nextcloud.rule=Host(`nextcloud.${DOMAIN}`)
       - traefik.http.routers.nextcloud.service=nextcloud
       - traefik.http.services.nextcloud.loadbalancer.server.port=80
-      - traefik.docker.network=data_frontend
+      - traefik.docker.network=frontend
     networks:
       - frontend
       - backend
     depends_on:
-      - db
+      - nextcloud
 
   # nextcloud:
   #   image: linuxserver/nextcloud
@@ -109,4 +128,5 @@ services:
 
 networks:
   frontend:
+    external: true
   backend:
