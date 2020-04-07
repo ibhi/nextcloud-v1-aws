@@ -200,6 +200,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       `chmod +x /data/app/nextcloud-v1-aws/src/secrets.sh`,
       `./data/app/nextcloud-v1-aws/src/secrets.sh`,
       `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
+      `sleep 15s`,
       `cd /data/app/nextcloud-v1-aws/src`,
       `docker network create frontend`,
       `export DOMAIN=${domain}`,
