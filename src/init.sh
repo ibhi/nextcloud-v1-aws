@@ -25,19 +25,8 @@ sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-
 sudo mv /usr/local/bin/docker-compose /usr/bin/docker-compose
 sudo chmod +x /usr/bin/docker-compose
 
-# Install EFS utils and mount efs
-sudo yum install -y amazon-efs-utils
-
-# Install s3fs
-sudo amazon-linux-extras install epel
-sudo yum install s3fs-fuse -y
-
 # Setup and mount EBS as cache folder for rclone
-fstype=\`file -s /dev/nvme1n1\`
-if [ "$fstype" == "/dev/nvme1n1: data" ]
-then
 mkfs -t ext4 /dev/nvme1n1
-fi
 mkdir -p /data
 mount /dev/nvme1n1 /data
 echo "/dev/nvme1n1 /data ext4 defaults,nofail 0 2" >> /etc/fstab

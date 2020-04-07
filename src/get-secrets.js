@@ -57,9 +57,9 @@ export MYSQL_USER=${secret.mysql_user}
 export MYSQL_PASSWORD=${secret.mysql_password}
 export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
 `;
-            fs.writeFile('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
+            fs.writeFile('/data/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
                 if (err) throw err;
-                console.log('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
+                console.log('/data/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
             });
         } else {
             const buff = new Buffer(data.SecretBinary, 'base64');
@@ -73,9 +73,9 @@ export MYSQL_USER=${secret.mysql_user}
 export MYSQL_PASSWORD=${secret.mysql_password}
 export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
 `;
-            fs.writeFile('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
+            fs.writeFile('/data/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
                 if (err) throw err;
-                console.log('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
+                console.log('/data/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
             });
         }
     }
