@@ -6,6 +6,7 @@ import * as route53 from '@aws-cdk/aws-route53';
 import * as efs from '@aws-cdk/aws-efs';
 import * as fs from 'fs';
 import * as logs from '@aws-cdk/aws-logs';
+import * as s3 from '@aws-cdk/aws-s3';
 
 export class NextcloudV1Stack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -23,11 +24,11 @@ export class NextcloudV1Stack extends cdk.Stack {
     const domain = 'ibhi.info';
 
     const vpc = new ec2.Vpc(this, 'Nextcloud-VPC', {
-      gatewayEndpoints: {
-        S3: {
-          service: ec2.GatewayVpcEndpointAwsService.S3
-        }
-      },
+      // gatewayEndpoints: {
+      //   S3: {
+      //     service: ec2.GatewayVpcEndpointAwsService.S3
+      //   }
+      // },
       cidr: '10.0.0.0/16',
       maxAzs: 2,
       subnetConfiguration: [
@@ -64,6 +65,10 @@ export class NextcloudV1Stack extends cdk.Stack {
       retention: logs.RetentionDays.ONE_WEEK
     });
 
+    const bucket = new s3.Bucket(this, 'NextcloudBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL
+    });
+
     const spotFleetInstanceRole = new iam.Role(this, 'NextcloudSpotFleetInstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
     });
@@ -96,6 +101,27 @@ export class NextcloudV1Stack extends cdk.Stack {
         'ec2:AssociateAddress'
       ],
       resources: ['*']
+    }));
+
+    spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        's3:Get*',
+        's3:Put*',
+        's3:Delete*',
+        's3:ListBucket',
+        's3:ListBucketVersions'
+      ],
+      resources: [
+        bucket.bucketArn,
+        bucket.arnForObjects('*')
+      ]
+    }));
+
+    spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['s3:ListBuckets'],
+      resources: ['arn:aws:s3:::*']
     }));
 
     // Temporary policy to upload the amazon-cloud-watch-log-agent config file to AWS Systems Manager
@@ -136,19 +162,20 @@ export class NextcloudV1Stack extends cdk.Stack {
       recordName: `nextcloud.${domain}`
     });
 
-    const mountTargetSecurityGroup = new ec2.SecurityGroup(this, 'NextcloudMountTargetSG', {
-      vpc
-    });
-    mountTargetSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(2049), 'EFS ingress rule');
+    // const mountTargetSecurityGroup = new ec2.SecurityGroup(this, 'NextcloudMountTargetSG', {
+    //   vpc
+    // });
+    // mountTargetSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(2049), 'EFS ingress rule');
 
-    const efsFileSystem = new efs.EfsFileSystem(this, 'NextcloudEfsFileSystem', {
-      vpc,
-      encrypted: true,
-      performanceMode: efs.EfsPerformanceMode.GENERAL_PURPOSE,
-      lifecyclePolicy: efs.EfsLifecyclePolicyProperty.AFTER_30_DAYS,
-      securityGroup: mountTargetSecurityGroup,
-    });
+    // const efsFileSystem = new efs.EfsFileSystem(this, 'NextcloudEfsFileSystem', {
+    //   vpc,
+    //   encrypted: true,
+    //   performanceMode: efs.EfsPerformanceMode.GENERAL_PURPOSE,
+    //   lifecyclePolicy: efs.EfsLifecyclePolicyProperty.AFTER_30_DAYS,
+    //   securityGroup: mountTargetSecurityGroup,
+    // });
 
+    
     const userData = fs.readFileSync(process.cwd() + '/src/init.sh').toString('utf-8');
 
     const appUserData = ec2.UserData.forLinux();
@@ -170,7 +197,8 @@ export class NextcloudV1Stack extends cdk.Stack {
       `node /home/ec2-user/app/nextcloud-v1-aws/src/elastic-ip.js`,
       `sudo mkdir -p /efs`,
       `sudo chown -R ec2-user:ec2-user /efs`,
-      `sudo mount -t efs ${efsFileSystem.fileSystemId}:/ /efs`,
+      // `sudo mount -t efs ${efsFileSystem.fileSystemId}:/ /efs`,
+      `s3fs ${bucket.bucketName} /efs`,
       `cd /home/ec2-user/app/nextcloud-v1-aws/src`,
       `docker network create frontend`,
       `export DOMAIN=${domain}`,
@@ -189,6 +217,7 @@ export class NextcloudV1Stack extends cdk.Stack {
           groupId: securityGroup.securityGroupId
         }
       ],
+      blockDeviceMappings: [],
       subnetId: (() => vpc.publicSubnets.map(subnet => subnet.subnetId).join(','))(),
       monitoring: { enabled: true },
       userData: cdk.Fn.base64(appUserData.render())

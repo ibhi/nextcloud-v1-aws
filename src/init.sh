@@ -27,4 +27,7 @@ sudo chmod +x /usr/bin/docker-compose
 
 # Install EFS utils and mount efs
 sudo yum install -y amazon-efs-utils
-# Todo
+
+# Install s3fs
+sudo amazon-linux-extras install epel
+sudo yum install s3fs-fuse -y
