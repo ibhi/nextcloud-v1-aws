@@ -17,7 +17,7 @@ export class NextcloudV1Stack extends cdk.Stack {
     const secretArn = secretsmanager.Secret.fromSecretArn(
       this, 
       'NextcloudSecret',
-      'arn:aws:secretsmanager:eu-west-3:782677160809:secret:test/nextcloud/secrets-VnHIae'
+      'arn:aws:secretsmanager:eu-west-3:782677160809:secret:prod/nextcloud/secrets-S6cRK1'
     ).secretArn;
 
     const hostedZoneId = 'ZVX61BHCX8GQS';
@@ -187,19 +187,20 @@ export class NextcloudV1Stack extends cdk.Stack {
       `export EC2_INSTANCE_ID=\`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id || die "wget instance-id has failed: $?"\``,
       `export ALLOCATION_ID=${elasticIp.attrAllocationId}`,
       `echo $ALLOCATION_ID`,
-      `mkdir -p /home/ec2-user/app`,
-      `sudo chown -R ec2-user:ec2-user /home/ec2-user/app`,
-      `cd /home/ec2-user/app`,
+      `mkdir -p /data/app`,
+      `sudo chown -R ec2-user:ec2-user /data/app`,
+      `cd /data/app`,
       `git clone https://github.com/ibhi/nextcloud-v1-aws.git`,
-      `cd /home/ec2-user/app/nextcloud-v1-aws`,
+      `cd /data/app/nextcloud-v1-aws`,
       `npm install`,
-      `sudo chown -R ec2-user:ec2-user /home/ec2-user/app/nextcloud-v1-aws`,
-      `node /home/ec2-user/app/nextcloud-v1-aws/src/elastic-ip.js`,
-      `sudo mkdir -p /efs`,
-      `sudo chown -R ec2-user:ec2-user /efs`,
-      // `sudo mount -t efs ${efsFileSystem.fileSystemId}:/ /efs`,
-      `s3fs ${bucket.bucketName} /efs`,
-      `cd /home/ec2-user/app/nextcloud-v1-aws/src`,
+      `sudo chown -R ec2-user:ec2-user /data/app/nextcloud-v1-aws`,
+      `node /data/app/nextcloud-v1-aws/src/elastic-ip.js`,
+      `node /data/app/nextcloud-v1-aws/src/get-secrets.js`,
+      `sudo chown -R ec2-user:ec2-user /data`,
+      `chmod +x /data/app/nextcloud-v1-aws/src/secrets.sh`,
+      `./data/app/nextcloud-v1-aws/src/secrets.sh`,
+      `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
+      `cd /data/app/nextcloud-v1-aws/src`,
       `docker network create frontend`,
       `export DOMAIN=${domain}`,
       `docker-compose up -d`,
@@ -217,7 +218,16 @@ export class NextcloudV1Stack extends cdk.Stack {
           groupId: securityGroup.securityGroupId
         }
       ],
-      blockDeviceMappings: [],
+      blockDeviceMappings: [{
+        deviceName: '/dev/sdk',
+        ebs: {
+          // snapshotId: '',
+          encrypted: true,
+          volumeSize: 5,
+          volumeType: 'gp2',
+          deleteOnTermination: false
+        }
+      }],
       subnetId: (() => vpc.publicSubnets.map(subnet => subnet.subnetId).join(','))(),
       monitoring: { enabled: true },
       userData: cdk.Fn.base64(appUserData.render())

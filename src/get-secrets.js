@@ -3,16 +3,18 @@
 // https://aws.amazon.com/developers/getting-started/nodejs/
 
 // Load the AWS SDK
-var AWS = require('aws-sdk'),
+const AWS = require('aws-sdk'),
     region = "eu-west-3",
-    secretName = "test/nextcloud/secrets",
-    secret,
-    decodedBinarySecret;
+    secretName = "prod/nextcloud/secrets";
+
+const fs = require('fs');
 
 // Create a Secrets Manager client
-var client = new AWS.SecretsManager({
+const client = new AWS.SecretsManager({
     region: region
 });
+
+var secret;
 
 // In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
 // See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
@@ -45,12 +47,36 @@ client.getSecretValue({SecretId: secretName}, function(err, data) {
         // Decrypts secret using the associated KMS CMK.
         // Depending on whether the secret is a string or binary, one of these fields will be populated.
         if ('SecretString' in data) {
-            secret = data.SecretString;
-            console.log('Secret ', secret)
+            const decodedBinarySecret = data.SecretString;
+            secret = JSON.parse(decodedBinarySecret);
+            const fileContent = `#!/bin/bash -xe
+export NEXTCLOUD_ADMIN_USER=${secret.nextcloud_admin_user}
+export NEXTCLOUD_ADMIN_PASSWORD=${secret.nextcloud_admin_password}
+export MYSQL_DATABASE=${secret.mysql_database}
+export MYSQL_USER=${secret.mysql_user}
+export MYSQL_PASSWORD=${secret.mysql_password}
+export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
+`;
+            fs.writeFile('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
+                if (err) throw err;
+                console.log('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
+            });
         } else {
-            let buff = new Buffer(data.SecretBinary, 'base64');
-            decodedBinarySecret = buff.toString('ascii');
-            console.log('Decoded secret ', decodedBinarySecret);
+            const buff = new Buffer(data.SecretBinary, 'base64');
+            const decodedBinarySecret = buff.toString('ascii');
+            secret = JSON.parse(decodedBinarySecret);
+            const fileContent = `#!/bin/bash -xe
+export NEXTCLOUD_ADMIN_USER=${secret.nextcloud_admin_user}
+export NEXTCLOUD_ADMIN_PASSWORD=${secret.nextcloud_admin_password}
+export MYSQL_DATABASE=${secret.mysql_database}
+export MYSQL_USER=${secret.mysql_user}
+export MYSQL_PASSWORD=${secret.mysql_password}
+export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
+`;
+            fs.writeFile('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
+                if (err) throw err;
+                console.log('/home/ec2-user/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
+            });
         }
     }
     
