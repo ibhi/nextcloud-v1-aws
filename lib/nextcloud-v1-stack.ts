@@ -7,6 +7,7 @@ import * as efs from '@aws-cdk/aws-efs';
 import * as fs from 'fs';
 import * as logs from '@aws-cdk/aws-logs';
 import * as s3 from '@aws-cdk/aws-s3';
+import * as rds from '@aws-cdk/aws-rds';
 
 export class NextcloudV1Stack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -14,11 +15,13 @@ export class NextcloudV1Stack extends cdk.Stack {
 
     const keyName = 'nextcloud-aws-keypair';
 
-    const secretArn = secretsmanager.Secret.fromSecretArn(
+    const secret = secretsmanager.Secret.fromSecretArn(
       this, 
       'NextcloudSecret',
       'arn:aws:secretsmanager:eu-west-3:782677160809:secret:prod/nextcloud/secrets-S6cRK1'
-    ).secretArn;
+    );
+
+    const secretArn = secret.secretArn;
 
     const hostedZoneId = 'ZVX61BHCX8GQS';
     const domain = 'ibhi.info';
@@ -162,20 +165,36 @@ export class NextcloudV1Stack extends cdk.Stack {
       recordName: `nextcloud.${domain}`
     });
 
-    // const mountTargetSecurityGroup = new ec2.SecurityGroup(this, 'NextcloudMountTargetSG', {
-    //   vpc
-    // });
-    // mountTargetSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(2049), 'EFS ingress rule');
+    const databaseSecurityGroup = new ec2.SecurityGroup(this, 'NextcloudDBSecurityGroup' {
+      vpc,
+      description: 'Security group for Aurora serverless DB cluster security group'
+    });
 
-    // const efsFileSystem = new efs.EfsFileSystem(this, 'NextcloudEfsFileSystem', {
-    //   vpc,
-    //   encrypted: true,
-    //   performanceMode: efs.EfsPerformanceMode.GENERAL_PURPOSE,
-    //   lifecyclePolicy: efs.EfsLifecyclePolicyProperty.AFTER_30_DAYS,
-    //   securityGroup: mountTargetSecurityGroup,
-    // });
+    databaseSecurityGroup.addIngressRule(securityGroup, ec2.Port.tcp(3306), 'For database connectivity from ec2 instance');
 
-    
+    // Aurora serverless database setup
+    const dbCluster = new rds.CfnDBCluster(this, 'NextcloudDatabase', {
+      engine: 'aurora',
+      engineMode: 'serverless',
+      engineVersion: '5.6.10a',
+      dbClusterIdentifier: 'NextcloudDBCluster',
+      databaseName: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_database}}',
+      backupRetentionPeriod: 1,
+      // todo: important for production
+      // deletionProtection: true,
+      masterUsername: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_user}}',
+      // todo: move the password to secrets
+      masterUserPassword: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_password}}',
+      port: 3306,
+      vpcSecurityGroupIds: [databaseSecurityGroup.securityGroupId],
+      scalingConfiguration: {
+        autoPause: true,
+        minCapacity: 1,
+        maxCapacity: 1,
+        secondsUntilAutoPause: 900 //15 mins
+      }
+    });
+
     const userData = fs.readFileSync(process.cwd() + '/src/init.sh').toString('utf-8');
 
     const appUserData = ec2.UserData.forLinux();
@@ -195,15 +214,20 @@ export class NextcloudV1Stack extends cdk.Stack {
       `npm install`,
       `sudo chown -R ec2-user:ec2-user /data/app/nextcloud-v1-aws`,
       `node /data/app/nextcloud-v1-aws/src/elastic-ip.js`,
-      `node /data/app/nextcloud-v1-aws/src/get-secrets.js`,
+      // `node /data/app/nextcloud-v1-aws/src/get-secrets.js`,
       `sudo chown -R ec2-user:ec2-user /data`,
       `chmod +x /data/app/nextcloud-v1-aws/src/secrets.sh`,
-      `./data/app/nextcloud-v1-aws/src/secrets.sh`,
-      `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
+      // `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
       `sleep 15s`,
       `cd /data/app/nextcloud-v1-aws/src`,
       `docker network create frontend`,
       `export DOMAIN=${domain}`,
+      `export MYSQL_HOST=${dbCluster.attrEndpointAddress}:${dbCluster.attrEndpointPort}`,
+      `export NEXTCLOUD_ADMIN_USER={{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:nextcloud_admin_password}}`,
+      `export NEXTCLOUD_ADMIN_PASSWORD={{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:nextcloud_admin_password}}`,
+      `export MYSQL_DATABASE={{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_database}}`,
+      `export MYSQL_USER={{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_user}}`,
+      `export MYSQL_PASSWORD={{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_password}}`,
       `docker-compose up -d`,
     );
 
