@@ -54,6 +54,8 @@ services:
     container_name: nextcloud
     restart: always
     user: 500:500
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
     volumes:
       - /data/nextcloud:/var/www/html
     environment:
