@@ -53,6 +53,7 @@ services:
     image: nextcloud
     container_name: nextcloud
     restart: always
+    user: 500:500
     volumes:
       - /data/nextcloud:/var/www/html
     environment:
