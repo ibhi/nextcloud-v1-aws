@@ -3,7 +3,6 @@ import * as ec2 from '@aws-cdk/aws-ec2';
 import * as iam from '@aws-cdk/aws-iam';
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
 import * as route53 from '@aws-cdk/aws-route53';
-import * as efs from '@aws-cdk/aws-efs';
 import * as fs from 'fs';
 import * as logs from '@aws-cdk/aws-logs';
 import * as s3 from '@aws-cdk/aws-s3';

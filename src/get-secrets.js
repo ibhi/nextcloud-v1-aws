@@ -16,6 +16,19 @@ const client = new AWS.SecretsManager({
 
 var secret;
 
+const createFileContent = (secret) => {
+    return `#!/bin/bash -xe
+    export NEXTCLOUD_ADMIN_USER=${secret.nextcloud_admin_user}
+    export NEXTCLOUD_ADMIN_PASSWORD=${secret.nextcloud_admin_password}
+    export MYSQL_DATABASE=${secret.mysql_database}
+    export MYSQL_USER=${secret.mysql_user}
+    export MYSQL_PASSWORD=${secret.mysql_password}
+    export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
+    `;
+};
+
+const filePath = '/data/app/nextcloud-v1-aws/src/secrets.sh';
+
 // In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
 // See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
 // We rethrow the exception by default.
@@ -49,33 +62,19 @@ client.getSecretValue({SecretId: secretName}, function(err, data) {
         if ('SecretString' in data) {
             const decodedBinarySecret = data.SecretString;
             secret = JSON.parse(decodedBinarySecret);
-            const fileContent = `#!/bin/bash -xe
-export NEXTCLOUD_ADMIN_USER=${secret.nextcloud_admin_user}
-export NEXTCLOUD_ADMIN_PASSWORD=${secret.nextcloud_admin_password}
-export MYSQL_DATABASE=${secret.mysql_database}
-export MYSQL_USER=${secret.mysql_user}
-export MYSQL_PASSWORD=${secret.mysql_password}
-export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
-`;
-            fs.writeFile('/data/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
+            const fileContent = createFileContent(secret);
+            fs.writeFile(filePath, fileContent, (err) => {
                 if (err) throw err;
-                console.log('/data/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
+                console.log(`${filePath} file successfully created`);
             });
         } else {
             const buff = new Buffer(data.SecretBinary, 'base64');
             const decodedBinarySecret = buff.toString('ascii');
             secret = JSON.parse(decodedBinarySecret);
-            const fileContent = `#!/bin/bash -xe
-export NEXTCLOUD_ADMIN_USER=${secret.nextcloud_admin_user}
-export NEXTCLOUD_ADMIN_PASSWORD=${secret.nextcloud_admin_password}
-export MYSQL_DATABASE=${secret.mysql_database}
-export MYSQL_USER=${secret.mysql_user}
-export MYSQL_PASSWORD=${secret.mysql_password}
-export MYSQL_ROOT_PASSWORD=${secret.mysql_root_password}
-`;
-            fs.writeFile('/data/app/nextcloud-v1-aws/src/secrets.sh', fileContent, (err) => {
+            const fileContent = createFileContent(secret);
+            fs.writeFile(filePath, fileContent, (err) => {
                 if (err) throw err;
-                console.log('/data/app/nextcloud-v1-aws/src/secrets.sh file successfully created');
+                console.log(`${filePath} file successfully created`);
             });
         }
     }
