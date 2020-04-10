@@ -39,6 +39,18 @@ export class NextcloudV1Stack extends cdk.Stack {
           name: 'PublicSubnet',
           subnetType: ec2.SubnetType.PUBLIC,
           cidrMask: 24
+        },
+        // private subnet also creates NAT Gateway which is costs lot of money
+        // {
+        //   name: 'PrivateSubnet',
+        //   subnetType: ec2.SubnetType.PRIVATE,
+        //   cidrMask: 24,
+        //   reserved: true,
+        // },
+        {
+          name: 'IsolatedDatabaseSubnet',
+          subnetType: ec2.SubnetType.ISOLATED,
+          cidrMask: 28
         }
       ]
     });
@@ -168,7 +180,7 @@ export class NextcloudV1Stack extends cdk.Stack {
 
     const databaseSubnetGroup = new rds.CfnDBSubnetGroup(this, 'NextcloudDBSubnetGroup', {
       // dbSubnetGroupName: 'NextcloudDatabaseSubnetGroup',
-      subnetIds: vpc.publicSubnets.map(subnet => subnet.subnetId),
+      subnetIds: vpc.isolatedSubnets.map(subnet => subnet.subnetId),
       dbSubnetGroupDescription: 'Nextcloud database subnet group'
     });
 
@@ -203,6 +215,31 @@ export class NextcloudV1Stack extends cdk.Stack {
       dbSubnetGroupName: databaseSubnetGroup.ref
     });
 
+    // const writeNextCloudConfigFile = () => {
+    //   return `
+    //     cat <<EOF > /data/nextcloud/config/config.php
+    //     <?php
+    //     $CONFIG = array (
+    //         'objectstore' => 
+    //         array (
+    //         'class' => '\\OC\\Files\\ObjectStore\\S3',
+    //         'arguments' => 
+    //         array (
+    //             'bucket' => '${bucket.bucketName}',
+    //             'autocreate' => false,
+    //             'hostname' => '${bucket.bucketRegionalDomainName}',
+    //             'port' => 443,
+    //             'use_ssl' => true,
+    //             'region' => '${this.region}',
+    //             'use_path_style' => false,
+    //         ),
+    //         ),
+    //         'installed' => false,
+    //     );
+    //     EOF
+    //   `;
+    // }
+
     const userData = fs.readFileSync(process.cwd() + '/src/init.sh').toString('utf-8');
 
     const appUserData = ec2.UserData.forLinux();
@@ -215,21 +252,18 @@ export class NextcloudV1Stack extends cdk.Stack {
       `export ALLOCATION_ID=${elasticIp.attrAllocationId}`,
       `echo $ALLOCATION_ID`,
       `mkdir -p /data/app`,
-      // `sudo chown -R ec2-user:ec2-user /data/app`,
       `cd /data/app`,
       `git clone https://github.com/ibhi/nextcloud-v1-aws.git`,
       `cd /data/app/nextcloud-v1-aws`,
       `npm install`,
-      // `sudo chown -R ec2-user:ec2-user /data/app/nextcloud-v1-aws`,
       `mkdir -p /data/nextcloud/config`,
-      // `sudo chown -R ec2-user:ec2-user /data/nextcloud/config`,
       `node /data/app/nextcloud-v1-aws/src/write-config.js`,
+      // writeNextCloudConfigFile(),
       `touch /data/nextcloud/config/CAN_INSTALL`,
       `node /data/app/nextcloud-v1-aws/src/elastic-ip.js`,
       // allow the elastic ip association to take effect before proceeding further
       `sleep 15s`,
       `node /data/app/nextcloud-v1-aws/src/get-secrets.js`,
-      // `sudo chown -R ec2-user:ec2-user /data`,
       `chmod +x /data/app/nextcloud-v1-aws/src/secrets.sh`,
       `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
       `sudo chown -R ec2-user:ec2-user /data`,
@@ -281,7 +315,7 @@ export class NextcloudV1Stack extends cdk.Stack {
           createSpotFleetLaunchSpecifications('t2.small'),
         ]
       }
-    })
+    });
 
   }
 }

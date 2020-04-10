@@ -18,6 +18,31 @@ var secret;
 
 const filePath = '/data/nextcloud/config/config.php';
 
+const createFileContent = (secret) => {
+    return `<?php
+    $CONFIG = array (
+        'objectstore' => 
+        array (
+        'class' => '\\OC\\Files\\ObjectStore\\S3',
+        'arguments' => 
+        array (
+            'bucket' => '${secret.bucket_name}',
+            'autocreate' => false,
+            'key' => '${secret.access_id}',
+            'secret' => '${secret.secret_key}',
+            'hostname' => '${secret.bucket_name}.s3.eu-west-3.amazonaws.com',
+            'port' => 443,
+            'use_ssl' => true,
+            'region' => 'eu-west-3',
+            'use_path_style' => false,
+        ),
+        ),
+        'installed' => false,
+    );     
+`;
+};
+
+
 // In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
 // See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
 // We rethrow the exception by default.
@@ -51,27 +76,7 @@ client.getSecretValue({SecretId: secretName}, function(err, data) {
         if ('SecretString' in data) {
             const decodedBinarySecret = data.SecretString;
             secret = JSON.parse(decodedBinarySecret);
-            const fileContent = `<?php
-    $CONFIG = array (
-        'objectstore' => 
-        array (
-        'class' => '\\OC\\Files\\ObjectStore\\S3',
-        'arguments' => 
-        array (
-            'bucket' => '${secret.bucket_name}',
-            'autocreate' => false,
-            'key' => '${secret.access_id}',
-            'secret' => '${secret.secret_key}',
-            'hostname' => 's3.eu-central-1.wasabisys.com',
-            'port' => 443,
-            'use_ssl' => true,
-            'region' => 'eu-central-1',
-            'use_path_style' => true,
-        ),
-        ),
-        'installed' => false,
-    );     
-`;
+            const fileContent = createFileContent(secret);
             fs.writeFile(filePath, fileContent, (err) => {
                 if (err) throw err;
                 console.log(`${filePath} file successfully created`);
@@ -80,27 +85,7 @@ client.getSecretValue({SecretId: secretName}, function(err, data) {
             const buff = new Buffer(data.SecretBinary, 'base64');
             const decodedBinarySecret = buff.toString('ascii');
             secret = JSON.parse(decodedBinarySecret);
-            const fileContent = `<?php
-    $CONFIG = array (
-        'objectstore' => 
-        array (
-        'class' => '\\OC\\Files\\ObjectStore\\S3',
-        'arguments' => 
-        array (
-            'bucket' => '${secret.bucket_name}',
-            'autocreate' => false,
-            'key' => '${secret.access_id}',
-            'secret' => '${secret.secret_key}',
-            'hostname' => 's3.eu-central-1.wasabisys.com',
-            'port' => 443,
-            'use_ssl' => true,
-            'region' => 'eu-central-1',
-            'use_path_style' => true,
-        ),
-        ),
-        'installed' => false,
-    );
-`;
+            const fileContent = createFileContent(secret);
             fs.writeFile(filePath, fileContent, (err) => {
                 if (err) throw err;
                 console.log(`${filePath} file successfully created`);
