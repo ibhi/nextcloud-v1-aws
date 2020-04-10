@@ -30,15 +30,15 @@ const createFileContent = (secret) => {
             'autocreate' => false,
             'key' => '${secret.access_id}',
             'secret' => '${secret.secret_key}',
-            'hostname' => '${secret.bucket_name}.s3.eu-west-3.amazonaws.com',
+            'hostname' => 's3.${region}.amazonaws.com',
             'port' => 443,
             'use_ssl' => true,
-            'region' => 'eu-west-3',
-            'use_path_style' => false,
+            'region' => '${region}',
+            'use_path_style' => true,
         ),
         ),
         'installed' => false,
-    );     
+    );
 `;
 };
 

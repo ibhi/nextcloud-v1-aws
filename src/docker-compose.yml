@@ -8,15 +8,15 @@ services:
     restart: always
     # Enables the web UI and tells Traefik to listen to docker
     command:
-      - --log.level=DEBUG
-      - --api.insecure=true 
+      # - --log.level=DEBUG
+      # - --api.insecure=true 
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.myhttpchallenge.acme.httpchallenge=true
       - --certificatesresolvers.myhttpchallenge.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.myhttpchallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      # - --certificatesresolvers.myhttpchallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
       - --certificatesresolvers.myhttpchallenge.acme.email=ibrahimin2004@gmail.com
       - --certificatesresolvers.myhttpchallenge.acme.storage=/letsencrypt/acme.json
     ports:

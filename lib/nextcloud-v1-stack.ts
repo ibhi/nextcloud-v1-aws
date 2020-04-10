@@ -118,26 +118,26 @@ export class NextcloudV1Stack extends cdk.Stack {
       resources: ['*']
     }));
 
-    spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        's3:Get*',
-        's3:Put*',
-        's3:Delete*',
-        's3:ListBucket',
-        's3:ListBucketVersions'
-      ],
-      resources: [
-        bucket.bucketArn,
-        bucket.arnForObjects('*')
-      ]
-    }));
+    // spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
+    //   effect: iam.Effect.ALLOW,
+    //   actions: [
+    //     's3:Get*',
+    //     's3:Put*',
+    //     's3:Delete*',
+    //     's3:ListBucket',
+    //     's3:ListBucketVersions'
+    //   ],
+    //   resources: [
+    //     bucket.bucketArn,
+    //     bucket.arnForObjects('*')
+    //   ]
+    // }));
 
-    spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['s3:ListBuckets'],
-      resources: ['arn:aws:s3:::*']
-    }));
+    // spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
+    //   effect: iam.Effect.ALLOW,
+    //   actions: ['s3:ListBuckets'],
+    //   resources: ['arn:aws:s3:::*']
+    // }));
 
     // Temporary policy to upload the amazon-cloud-watch-log-agent config file to AWS Systems Manager
     // spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
@@ -177,9 +177,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       recordName: `nextcloud.${domain}`
     });
 
-
     const databaseSubnetGroup = new rds.CfnDBSubnetGroup(this, 'NextcloudDBSubnetGroup', {
-      // dbSubnetGroupName: 'NextcloudDatabaseSubnetGroup',
       subnetIds: vpc.isolatedSubnets.map(subnet => subnet.subnetId),
       dbSubnetGroupDescription: 'Nextcloud database subnet group'
     });
@@ -198,7 +196,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       engineVersion: '5.6.10a',
       dbClusterIdentifier: 'NextcloudDBCluster',
       databaseName: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_database}}',
-      backupRetentionPeriod: 1,
+      backupRetentionPeriod: 5,
       // todo: important for production
       // deletionProtection: true,
       masterUsername: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_user}}',
@@ -214,31 +212,6 @@ export class NextcloudV1Stack extends cdk.Stack {
       },
       dbSubnetGroupName: databaseSubnetGroup.ref
     });
-
-    // const writeNextCloudConfigFile = () => {
-    //   return `
-    //     cat <<EOF > /data/nextcloud/config/config.php
-    //     <?php
-    //     $CONFIG = array (
-    //         'objectstore' => 
-    //         array (
-    //         'class' => '\\OC\\Files\\ObjectStore\\S3',
-    //         'arguments' => 
-    //         array (
-    //             'bucket' => '${bucket.bucketName}',
-    //             'autocreate' => false,
-    //             'hostname' => '${bucket.bucketRegionalDomainName}',
-    //             'port' => 443,
-    //             'use_ssl' => true,
-    //             'region' => '${this.region}',
-    //             'use_path_style' => false,
-    //         ),
-    //         ),
-    //         'installed' => false,
-    //     );
-    //     EOF
-    //   `;
-    // }
 
     const userData = fs.readFileSync(process.cwd() + '/src/init.sh').toString('utf-8');
 
@@ -258,7 +231,6 @@ export class NextcloudV1Stack extends cdk.Stack {
       `npm install`,
       `mkdir -p /data/nextcloud/config`,
       `node /data/app/nextcloud-v1-aws/src/write-config.js`,
-      // writeNextCloudConfigFile(),
       `touch /data/nextcloud/config/CAN_INSTALL`,
       `node /data/app/nextcloud-v1-aws/src/elastic-ip.js`,
       // allow the elastic ip association to take effect before proceeding further
@@ -316,6 +288,8 @@ export class NextcloudV1Stack extends cdk.Stack {
         ]
       }
     });
+
+    cdk.Tag.add(this, 'Name', 'Nextcloud');
 
   }
 }
