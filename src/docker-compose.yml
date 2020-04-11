@@ -80,6 +80,17 @@ services:
       - traefik.http.services.nextcloud.loadbalancer.server.port=80
       - traefik.docker.network=frontend
       - traefik.http.routers.nextcloud.tls.certresolver=myhttpchallenge
+      - traefik.http.middlewares.nc-rep.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav
+      - traefik.http.middlewares.nc-rep.redirectregex.replacement=https://$$1/remote.php/dav/
+      - traefik.http.middlewares.nc-rep.redirectregex.permanent=true
+      - traefik.http.middlewares.nc-header.headers.referrerPolicy=no-referrer
+      - traefik.http.middlewares.nc-header.headers.stsSeconds=31536000
+      - traefik.http.middlewares.nc-header.headers.forceSTSHeader=true
+      - traefik.http.middlewares.nc-header.headers.stsPreload=true
+      - traefik.http.middlewares.nc-header.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.nc-header.headers.browserXssFilter=true
+      - traefik.http.middlewares.nc-header.headers.customRequestHeaders.X-Forwarded-Proto=https
+      - traefik.http.routers.nextcloud.middlewares=nc-rep,nc-header
     networks:
       - frontend
     #   - backend

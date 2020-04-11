@@ -38,6 +38,7 @@ const createFileContent = (secret) => {
         ),
         ),
         'installed' => false,
+        'overwriteprotocol' => 'https',
     );
 `;
 };

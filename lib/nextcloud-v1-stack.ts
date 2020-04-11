@@ -79,9 +79,9 @@ export class NextcloudV1Stack extends cdk.Stack {
       retention: logs.RetentionDays.ONE_WEEK
     });
 
-    const bucket = new s3.Bucket(this, 'NextcloudBucket', {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL
-    });
+    // const bucket = new s3.Bucket(this, 'NextcloudBucket', {
+    //   blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL
+    // });
 
     const spotFleetInstanceRole = new iam.Role(this, 'NextcloudSpotFleetInstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
