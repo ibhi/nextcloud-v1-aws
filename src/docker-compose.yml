@@ -24,7 +24,7 @@ services:
       - 80:80
       - 443:443
       # The Web UI (enabled by --api.insecure=true)
-      - 8080:8080
+      # - 8080:8080
     volumes:
       # So that Traefik can listen to the Docker events
       - /data/letsencrypt:/letsencrypt
@@ -32,22 +32,23 @@ services:
     networks:
       - frontend
 
-  # db:
-  #   image: linuxserver/mariadb
-  #   container_name: mariadb
-  #   restart: always
-  #   volumes:
-  #     - /data/db:/config
-  #   environment:
-  #     - PUID=500
-  #     - PGID=500
-  #     - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-  #     - TZ=Europe/Amsterdam
-  #     - MYSQL_DATABASE=${MYSQL_DATABASE}
-  #     - MYSQL_USER=${MYSQL_USER}
-  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-  #   networks:
-  #     - backend
+  db:
+    image: linuxserver/mariadb
+    container_name: mariadb
+    restart: always
+    user: 500:500
+    volumes:
+      - /data/db:/config
+    environment:
+      - PUID=500
+      - PGID=500
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=Europe/Amsterdam
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - backend
 
   nextcloud:
     image: nextcloud
@@ -66,7 +67,7 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_HOST=mariadb:3306
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
     labels:
@@ -93,11 +94,11 @@ services:
       - traefik.http.routers.nextcloud.middlewares=nc-rep,nc-header
     networks:
       - frontend
-    #   - backend
-    # depends_on:
-    #   - db
+      - backend
+    depends_on:
+      - db
 
 networks:
   frontend:
     external: true
-  # backend:
+  backend:

@@ -39,7 +39,7 @@ export class NextcloudV1Stack extends cdk.Stack {
           subnetType: ec2.SubnetType.PUBLIC,
           cidrMask: 24
         },
-        // private subnet also creates NAT Gateway which is costs lot of money
+        // private subnet also creates NAT Gateway which does cost lot of money
         // {
         //   name: 'PrivateSubnet',
         //   subnetType: ec2.SubnetType.PRIVATE,
@@ -57,7 +57,7 @@ export class NextcloudV1Stack extends cdk.Stack {
     const securityGroup = new ec2.SecurityGroup(this, 'Nextcloud-SecurityGroup', {
       vpc,
       description: 'Security group to allow ingress http and https',
-    })
+    });
     securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'For ssh');
     securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'For http');
     securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'For https');
@@ -176,41 +176,42 @@ export class NextcloudV1Stack extends cdk.Stack {
       recordName: `nextcloud.${domain}`
     });
 
-    const databaseSubnetGroup = new rds.CfnDBSubnetGroup(this, 'NextcloudDBSubnetGroup', {
-      subnetIds: vpc.isolatedSubnets.map(subnet => subnet.subnetId),
-      dbSubnetGroupDescription: 'Nextcloud database subnet group'
-    });
+    // // Aurora serverless database setup
 
-    const databaseSecurityGroup = new ec2.SecurityGroup(this, 'NextcloudDBSecurityGroup', {
-      vpc,
-      description: 'Security group for Aurora serverless DB cluster security group'
-    });
+    // const databaseSubnetGroup = new rds.CfnDBSubnetGroup(this, 'NextcloudDBSubnetGroup', {
+    //   subnetIds: vpc.isolatedSubnets.map(subnet => subnet.subnetId),
+    //   dbSubnetGroupDescription: 'Nextcloud database subnet group'
+    // });
 
-    databaseSecurityGroup.addIngressRule(securityGroup, ec2.Port.tcp(3306), 'For database connectivity from ec2 instance');
+    // const databaseSecurityGroup = new ec2.SecurityGroup(this, 'NextcloudDBSecurityGroup', {
+    //   vpc,
+    //   description: 'Security group for Aurora serverless DB cluster security group'
+    // });
 
-    // Aurora serverless database setup
-    const dbCluster = new rds.CfnDBCluster(this, 'NextcloudDatabase', {
-      engine: 'aurora',
-      engineMode: 'serverless',
-      engineVersion: '5.6.10a',
-      dbClusterIdentifier: 'NextcloudDBCluster',
-      databaseName: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_database}}',
-      backupRetentionPeriod: 5,
-      // todo: important for production
-      // deletionProtection: true,
-      masterUsername: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_user}}',
-      // todo: move the password to secrets
-      masterUserPassword: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_password}}',
-      port: 3306,
-      vpcSecurityGroupIds: [databaseSecurityGroup.securityGroupId],
-      scalingConfiguration: {
-        autoPause: true,
-        minCapacity: 1,
-        maxCapacity: 1,
-        secondsUntilAutoPause: 900 //15 mins
-      },
-      dbSubnetGroupName: databaseSubnetGroup.ref
-    });
+    // databaseSecurityGroup.addIngressRule(securityGroup, ec2.Port.tcp(3306), 'For database connectivity from ec2 instance');
+
+    // const dbCluster = new rds.CfnDBCluster(this, 'NextcloudDatabase', {
+    //   engine: 'aurora',
+    //   engineMode: 'serverless',
+    //   engineVersion: '5.6.10a',
+    //   dbClusterIdentifier: 'NextcloudDBCluster',
+    //   databaseName: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_database}}',
+    //   backupRetentionPeriod: 5,
+    //   // todo: important for production
+    //   // deletionProtection: true,
+    //   masterUsername: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_user}}',
+    //   // todo: move the password to secrets
+    //   masterUserPassword: '{{resolve:secretsmanager:prod/nextcloud/secrets:SecretString:mysql_password}}',
+    //   port: 3306,
+    //   vpcSecurityGroupIds: [databaseSecurityGroup.securityGroupId],
+    //   scalingConfiguration: {
+    //     autoPause: true,
+    //     minCapacity: 1,
+    //     maxCapacity: 1,
+    //     secondsUntilAutoPause: 900 //15 mins
+    //   },
+    //   dbSubnetGroupName: databaseSubnetGroup.ref
+    // });
 
     const userData = fs.readFileSync(process.cwd() + '/src/init.sh').toString('utf-8');
 
@@ -241,7 +242,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       `cd /data/app/nextcloud-v1-aws/src`,
       `docker network create frontend`,
       `export DOMAIN=${domain}`,
-      `export MYSQL_HOST=${dbCluster.attrEndpointAddress}:${dbCluster.attrEndpointPort}`,
+      // `export MYSQL_HOST=${dbCluster.attrEndpointAddress}:${dbCluster.attrEndpointPort}`,
       `docker-compose up -d`,
     );
 
@@ -262,7 +263,7 @@ export class NextcloudV1Stack extends cdk.Stack {
         ebs: {
           // snapshotId: '',
           encrypted: true,
-          volumeSize: 5,
+          volumeSize: 8,
           volumeType: 'gp2',
           deleteOnTermination: false
         }
