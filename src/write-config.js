@@ -22,24 +22,31 @@ const createFileContent = (secret) => {
     return `<?php
     $CONFIG = array (
         'objectstore' => 
-        array (
-        'class' => '\\OC\\Files\\ObjectStore\\S3',
-        'arguments' => 
-        array (
-            'bucket' => '${secret.bucket_name}',
-            'autocreate' => false,
-            'key' => '${secret.access_id}',
-            'secret' => '${secret.secret_key}',
-            'hostname' => 's3.${region}.amazonaws.com',
-            'port' => 443,
-            'use_ssl' => true,
-            'region' => '${region}',
-            'use_path_style' => true,
-        ),
+            array (
+                'class' => '\\OC\\Files\\ObjectStore\\S3',
+                'arguments' => 
+                    array (
+                        'bucket' => '${secret.bucket_name}',
+                        'autocreate' => false,
+                        'key' => '${secret.access_id}',
+                        'secret' => '${secret.secret_key}',
+                        'hostname' => 's3.${region}.amazonaws.com',
+                        'port' => 443,
+                        'use_ssl' => true,
+                        'region' => '${region}',
+                        'use_path_style' => true,
+                    ),
         ),
         'installed' => false,
         'overwriteprotocol' => 'https',
-    );
+        'filelocking.enabled' => true,
+        'memcache.locking' => '\OC\Memcache\Redis',
+        'redis' => array(
+            'host' => 'redis',
+            'port' => 6379,
+            'timeout' => 0.0,
+        )
+    )
 `;
 };
 
