@@ -27,6 +27,15 @@ const createFileContent = (secret) => {
     `;
 };
 
+const createLetsencryptCert = (secret) => {
+    const filePath = '/data/letsencrypt/acme.json';
+    const fileContent = secret.acme;
+    fs.writeFile(filePath, fileContent, (err) => {
+        if (err) throw err;
+        console.log(`${filePath} file successfully created`);
+    });
+};
+
 const filePath = '/data/app/nextcloud-v1-aws/src/secrets.sh';
 
 // In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
@@ -67,6 +76,7 @@ client.getSecretValue({SecretId: secretName}, function(err, data) {
                 if (err) throw err;
                 console.log(`${filePath} file successfully created`);
             });
+            createLetsencryptCert(secret);
         } else {
             const buff = new Buffer(data.SecretBinary, 'base64');
             const decodedBinarySecret = buff.toString('ascii');
@@ -76,6 +86,7 @@ client.getSecretValue({SecretId: secretName}, function(err, data) {
                 if (err) throw err;
                 console.log(`${filePath} file successfully created`);
             });
+            createLetsencryptCert(secret);
         }
     }
     

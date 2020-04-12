@@ -36,7 +36,6 @@ services:
     image: linuxserver/mariadb
     container_name: mariadb
     restart: always
-    user: 500:500
     volumes:
       - /data/db:/config
     environment:
