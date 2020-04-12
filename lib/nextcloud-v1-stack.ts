@@ -230,6 +230,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       `cd /data/app/nextcloud-v1-aws`,
       `npm install`,
       `mkdir -p /data/nextcloud/config`,
+      `mkdir -p /data/db`,
       `node /data/app/nextcloud-v1-aws/src/write-config.js`,
       `touch /data/nextcloud/config/CAN_INSTALL`,
       `node /data/app/nextcloud-v1-aws/src/elastic-ip.js`,
