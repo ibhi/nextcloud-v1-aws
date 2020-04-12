@@ -240,7 +240,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       `node /data/app/nextcloud-v1-aws/src/get-secrets.js`,
       `chmod +x /data/app/nextcloud-v1-aws/src/secrets.sh`,
       `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
-      `cp /data/app/nextcloud-v1-aws/src/php.in /data/nextcloud/config/php.ini`,
+      `cp /data/app/nextcloud-v1-aws/src/php.ini /data/nextcloud/config/php.ini`,
       `sudo chown -R ec2-user:ec2-user /data`,
       `sudo chmod 600 /data/letsencrypt/acme.json`,      
       `cd /data/app/nextcloud-v1-aws/src`,
