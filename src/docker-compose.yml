@@ -48,6 +48,13 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     networks:
       - backend
+  
+  redis:
+    image: redis
+    container_name: redis
+    restart: always
+    networks:
+      - backend
 
   nextcloud:
     image: nextcloud
@@ -58,6 +65,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=0
     volumes:
       - /data/nextcloud:/var/www/html
+      - /data/nextcloud/config/php.ini:/usr/local/etc/php/php.ini
     environment:
       - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.${DOMAIN}
       - PUID=500
@@ -69,6 +77,8 @@ services:
       - MYSQL_HOST=mariadb:3306
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - REDIS_HOST=redis
+
     labels:
       - traefik.enable=true
       - traefik.http.middlewares.nextcloud-https.redirectscheme.scheme=https
