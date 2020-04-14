@@ -26,7 +26,7 @@ sudo mv /usr/local/bin/docker-compose /usr/bin/docker-compose
 sudo chmod +x /usr/bin/docker-compose
 
 # Setup and mount EBS as cache folder for rclone
-mkfs -t ext4 /dev/nvme1n1
+# mkfs -t ext4 /dev/nvme1n1
 mkdir -p /data
 mount /dev/nvme1n1 /data
 echo "/dev/nvme1n1 /data ext4 defaults,nofail 0 2" >> /etc/fstab
