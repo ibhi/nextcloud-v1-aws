@@ -93,7 +93,8 @@ export class NextcloudV1Stack extends cdk.Stack {
         'logs:CreateLogGroup',
         'logs:CreateLogStream',
         'logs:PutLogEvents',
-        'logs:DescribeLogStreams'
+        'logs:DescribeLogStreams',
+        'logs:DescribeLogGroups'
       ],
       resources: ['arn:aws:logs:*:*:*']
     }));
@@ -113,6 +114,19 @@ export class NextcloudV1Stack extends cdk.Stack {
         'ec2:AllocateAddress',
         'ec2:DescribeInstances',
         'ec2:AssociateAddress'
+      ],
+      resources: ['*']
+    }));
+
+    // Permission for SSM agent to communicate with SSM Server
+    spotFleetInstanceRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel",
+        "ssm:UpdateInstanceInformation"
       ],
       resources: ['*']
     }));
@@ -220,27 +234,27 @@ export class NextcloudV1Stack extends cdk.Stack {
     appUserData.addCommands(userData);
 
     appUserData.addCommands(
-      // `sudo su - ec2-user`,
       `export EC2_INSTANCE_ID=\`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id || die "wget instance-id has failed: $?"\``,
       `export ALLOCATION_ID=${elasticIp.attrAllocationId}`,
       `echo $ALLOCATION_ID`,
-      `mkdir -p /data/app`,
+      // `mkdir -p /data/app`,
       `cd /data/app`,
-      `git clone https://github.com/ibhi/nextcloud-v1-aws.git`,
+      // `git clone https://github.com/ibhi/nextcloud-v1-aws.git`,
       `cd /data/app/nextcloud-v1-aws`,
+      `git pull`,
       `npm install`,
-      `mkdir -p /data/nextcloud/config`,
-      `mkdir -p /data/db`,
-      `mkdir -p /data/letsencrypt`,
-      `node /data/app/nextcloud-v1-aws/src/write-config.js`,
-      `touch /data/nextcloud/config/CAN_INSTALL`,
+      // `mkdir -p /data/nextcloud/config`,
+      // `mkdir -p /data/db`,
+      // `mkdir -p /data/letsencrypt`,
+      // `node /data/app/nextcloud-v1-aws/src/write-config.js`,
+      // `touch /data/nextcloud/config/CAN_INSTALL`,
       `node /data/app/nextcloud-v1-aws/src/elastic-ip.js`,
       // allow the elastic ip association to take effect before proceeding further
       `sleep 15s`,
       `node /data/app/nextcloud-v1-aws/src/get-secrets.js`,
       `chmod +x /data/app/nextcloud-v1-aws/src/secrets.sh`,
       `source /data/app/nextcloud-v1-aws/src/secrets.sh`,
-      `cp /data/app/nextcloud-v1-aws/src/php.ini /data/nextcloud/config/php.ini`,
+      // `cp /data/app/nextcloud-v1-aws/src/php.ini /data/nextcloud/config/php.ini`,
       `sudo chown -R ec2-user:ec2-user /data`,
       `sudo chmod 600 /data/letsencrypt/acme.json`,      
       `cd /data/app/nextcloud-v1-aws/src`,
@@ -265,7 +279,7 @@ export class NextcloudV1Stack extends cdk.Stack {
       blockDeviceMappings: [{
         deviceName: '/dev/sdk',
         ebs: {
-          // snapshotId: '',
+          snapshotId: 'snap-0f6571e5f36d96ce1',
           encrypted: true,
           volumeSize: 8,
           volumeType: 'gp2',
